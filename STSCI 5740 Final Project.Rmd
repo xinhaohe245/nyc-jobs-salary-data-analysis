@@ -20,14 +20,23 @@ data <- read_csv("redone_data_analysis6.csv")
 ```
 
 ```{r}
-# LASSO REGRESSION WITH ALL PREDICTORS (sparse matrix with lots of 0's and high dimensional/lots of columns b/c of dummy variables)
+# LASSO OR RIDGE REGRESSION WITH ALL PREDICTORS (lasso = good for sparse matrix with lots of 0's and high dimensional/lots of columns b/c of dummy variables)
 # WITH TRAIN/TEST SPLIT
-cleaned_data <- data[,!names(data) %in% c("Salary.Range.From")] %>% na.omit
 
-data_X <- model.matrix(Salary.Range.To ~ ., data=cleaned_data)
-data_Y = cleaned_data$Salary.Range.To
+
+data$normalized_range_to <- (data$Salary.Range.To - mean(data$Salary.Range.To)) /sd(data$Salary.Range.To)
+
+data$normalized_range_from <- (data$Salary.Range.From - mean(data$Salary.Range.From)) /sd(data$Salary.Range.From)
+
+cleaned_data <- data[,!names(data) %in% c("Salary.Range.From", "Salary.Range.To")] %>% na.omit
+
+
+
+data_X <- model.matrix(normalized_range_from ~ ., data=cleaned_data)
+data_Y = cleaned_data$normalized_range_from
 
 # TRAIN TEST SPLIT
+set.seed(1)
 sample <- sample(c(TRUE, FALSE), nrow(data_X), replace=TRUE, prob=c(0.7,0.3))
 train_X  <- data_X[sample, ]
 test_X   <- data_X[!sample, ]
@@ -36,17 +45,21 @@ train_Y = data_Y[sample]
 test_Y = data_Y[!sample]
 
 
-
-set.seed(1)
-cv.out=cv.glmnet(train_X,train_Y,alpha=1) #10 fold cross validation
+cv.out=cv.glmnet(train_X,train_Y,alpha=1, standardize = TRUE) #10 fold cross validation
 bestlam=cv.out$lambda.min
 bestlam
-lasso.mod=glmnet(train_X,train_Y,alpha=1,lambda=bestlam)
+lasso.mod=glmnet(train_X,train_Y,alpha=1,lambda=bestlam, standardize = TRUE)
 # lasso.coef=coef(lasso.mod)[,1]
 # lasso.coef[lasso.coef!=0]
 # lasso.coef[lasso.coef==0]
 
 y_predicted <- predict(lasso.mod, s = bestlam, newx = test_X)
+
+
+
+
+mse = mean((y_predicted - test_Y)^2)
+print(mse)
 
 
 # for calculating R-squared value https://www.statology.org/lasso-regression-in-r/
