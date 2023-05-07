@@ -1,6 +1,5 @@
 rm(list=ls())
-data <- read.csv("stsci4740/project/redone_data_analysis6.csv")
-summary(data)
+data <- read.csv("redone_data_analysis6.csv")
 set.seed(1)
 data$School.Level <- as.factor(data$School.Level)
 data$Agency <- as.factor(data$Agency)
@@ -11,11 +10,11 @@ train <- sample(nrow(data), nrow(data)*7/10)
 
 # Bagging
 library(randomForest)
-bagged_trees <- randomForest(Salary.Range.From ~ ., data,
+bagged_trees <- randomForest(Salary.Range.To ~.-Salary.Range.To-Salary.Range.From, data,
                            subset = train, importance = TRUE)
 
 pred <- predict(bagged_trees, newdata = data[-train, ])
-test <-data[-train, "Salary.Range.From"]
+test <-data[-train, "Salary.Range.To"]
 plot(test, pred)
 abline(0, 1)
 tree_mse <- mean((pred - test)^2)
